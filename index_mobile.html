@@ -1,0 +1,143 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>風鈴 · 移动端诊断版 v20m</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  :root{ --ink:#e6eefc; --accent:#60a5ff; }
+  *{ box-sizing: border-box; -webkit-tap-highlight-color: rgba(0,0,0,0); }
+  html,body{ margin:0; background:#061227; color:var(--ink); }
+  /* 允许滚动（修正原来 overflow:hidden 导致的无法上下移动） */
+  body{ min-height:100vh; overflow:auto; -webkit-overflow-scrolling:touch; }
+
+  #hanabi{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+  .app{ position: relative; z-index: 1; width:min(520px,100%); min-height:100vh; margin:0 auto;
+        background: rgba(5, 10, 20, 0.55); backdrop-filter: blur(3px);
+        border-radius: 18px; display:flex; flex-direction:column; align-items:center;
+        padding: 12px 16px calc(18px + env(safe-area-inset-bottom)); box-shadow: 0 12px 40px rgba(0,0,0,.35);
+        pointer-events:auto; transform: translateZ(0); }
+  .title{ width:100%; text-align:left; font-size:18px; color:#9fb7ff; margin:8px 0; }
+  .canvas{ position:relative; width:100%; height:560px; overflow:hidden; display:flex; align-items:center; justify-content:center; }
+  .diagramWrap{ width:360px; height:520px; transform-origin: top center; }
+  .controls{ width:100%; padding-top:10px; display:flex; gap:10px; align-items:center; flex-wrap:wrap; }
+  button{ flex:1 1 auto; padding:12px 14px; border-radius:14px; border:2px solid var(--accent);
+          background:rgba(255,255,255,0.06); color: var(--ink); font-size:16px; font-weight:600; cursor:pointer; }
+  button.on{ background: var(--accent); color:#00122a; border-color: var(--accent); }
+  .row{ display:flex; width:100%; gap:10px; margin-top:8px; align-items:center; }
+  .sliderWrap{ flex: 1 1 auto; display:flex; align-items:center; gap:10px; color:#98a7c9; font-size:14px; }
+  input[type="range"]{ width:100%; }
+  .note{ width:100%; text-align:center; color:#8fa5d6; font-size:12px; margin:8px 0;}
+  #err{ position:fixed; left:8px; right:8px; top:8px; z-index:9; background:#ff3b30; color:#fff; padding:10px 12px; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.3); font-size:13px; display:none; white-space:pre-wrap; }
+  #debug{ position:fixed; bottom:8px; left:8px; right:8px; z-index:9; color:#9fd3ff; background:rgba(0,20,40,.6); border:1px solid #295b8f; border-radius:10px; padding:8px; font-size:12px; max-height:40vh; overflow:auto; }
+  .taparea{ position:fixed; inset:0; z-index:2; pointer-events:none; } /* 用于检测是否有遮挡层 */
+</style>
+</head>
+<body>
+  <div id="err"></div>
+  <div id="debug">debug log…</div>
+  <canvas id="hanabi"></canvas>
+  <div class="taparea" id="taparea"></div>
+
+  <div class="app" id="app">
+    <div class="title">移动端诊断版 · 風鈴</div>
+    <div class="canvas" id="canvas">
+      <svg id="diagram" class="diagramWrap" viewBox="0 0 360 520" xmlns="http://www.w3.org/2000/svg">
+        <g transform="translate(180,120) rotate(45) translate(-85,-85)">
+          <rect x="0" y="0" width="170" height="170" rx="22" ry="22" fill="#0b1a33" stroke="#60a5ff" stroke-width="6"/>
+        </g>
+        <text x="180" y="120" text-anchor="middle" dominant-baseline="middle" font-size="20" font-weight="700" fill="#d7e2ff">風有在吹嗎？</text>
+        <g id="asm" transform="rotate(0 180 220)">
+          <text x="205" y="220" fill="#a7b4d9" font-size="16">yes</text>
+          <line x1="180" y1="200" x2="180" y2="240" stroke="#9fb7ff" stroke-width="3"/>
+          <g id="bell">
+            <path d="M130,300 Q180,230 230,300 L230,330 Q180,350 130,330 Z" fill="#9ec9ff33" stroke="#8db2ff" stroke-width="2"/>
+            <ellipse cx="180" cy="300" rx="50" ry="10" fill="#8fb9ff" opacity="0.9"/>
+            <line id="clapperLine" x1="180" y1="300" x2="180" y2="364" stroke="#aecdff" stroke-width="2"/>
+            <circle id="clapper" cx="180" cy="372" r="10" fill="#c2d2ff"/>
+          </g>
+          <g id="tz">
+            <line x1="180" y1="382" x2="180" y2="392" stroke="#9fb7ff" stroke-width="2"/>
+            <rect x="165" y="392" width="30" height="70" rx="4" fill="#0f1c33" stroke="#324b7a"/>
+            <text x="180" y="397" text-anchor="middle" fill="#b7d0ff" font-size="14" style="writing-mode:vertical-rl">香橙布叮铃铃</text>
+          </g>
+        </g>
+      </svg>
+    </div>
+
+    <div class="controls">
+      <button id="toggle">有風（開始）</button>
+      <button id="hit">只響一下</button>
+      <button id="hanabi" class="on">花火大会（開）</button>
+      <button id="taptest">触摸测试</button>
+    </div>
+    <div class="row"><span>風速</span><input id="rate" type="range" min="0" max="100" value="45"><span id="st">待機中</span></div>
+    <div class="note">v20m：允许滚动、按钮双事件绑定（click+touchend）、下方 Debug 日志。</div>
+  </div>
+
+<script>
+(function(){const box=document.getElementById('err');addEventListener('error',e=>{box.style.display='block';box.textContent='[JS Error] '+e.message;});addEventListener('unhandledrejection',e=>{box.style.display='block';box.textContent='[Rejection] '+e.reason;});})();
+
+// 打印调试日志
+function log(s){ const el=document.getElementById('debug'); const t=new Date().toLocaleTimeString(); el.textContent = '['+t+'] '+s+'\\n' + el.textContent; }
+
+// iOS 音频解锁：任何 touchstart 都尝试 resume
+let audioCtx;
+window.addEventListener('touchstart', ()=>{ try{ if(audioCtx && audioCtx.state==='suspended') audioCtx.resume(); }catch(e){} }, {passive:true});
+
+// 用 load 确保所有资源都 ready（比 DOMContentLoaded 更保险）
+window.addEventListener('load', () => {
+  log('load event fired');
+
+  const $ = id => document.getElementById(id);
+  const asm=$('asm'), bell=$('bell'), tz=$('tz'), clapper=$('clapper');
+  const toggle=$('toggle'), hit=$('hit'), rate=$('rate'), st=$('st'), btnHanabi=$('hanabi'), taptest=$('taptest');
+  const taparea=$('taparea');
+
+  audioCtx = new (window.AudioContext||window.webkitAudioContext)();
+
+  function chime(){const now=audioCtx.currentTime;
+    function tone(f,t){const o=audioCtx.createOscillator(),g=audioCtx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,now+t);g.gain.linearRampToValueAtTime(.9,now+t+.01);g.gain.exponentialRampToValueAtTime(.0001,now+t+1.3);o.connect(g).connect(audioCtx.destination);o.start(now+t);o.stop(now+t+1.4);}
+    tone(1400,0);tone(1000,.03);tone(1800,.12); impulse+=6;
+  }
+
+  // 物理（简版）
+  let raf=null,phase=0,impulse=0,running=false,timer=null;
+  function loop(){const r=+rate.value,f=.6+r/120,amp=1+r/30;phase+=(f*2*Math.PI)/60;impulse*=.94;const d=Math.sin(phase)*(amp+impulse);
+    asm.setAttribute('transform','rotate('+d+' 180 220)');bell.setAttribute('transform','rotate('+(d*.2)+' 180 300)');tz.setAttribute('transform','rotate('+(d*.4)+' 180 392)');clapper.setAttribute('transform','rotate('+(d*.3)+' 180 300)');
+    raf=requestAnimationFrame(loop);
+  }
+  function start(){if(running)return;running=true;toggle.classList.add('on');toggle.textContent='停風（停止）';st.textContent='風在吹：響鈴中…';if(!raf)raf=requestAnimationFrame(loop);schedule();}
+  function stop(){running=false;toggle.classList.remove('on');toggle.textContent='有風（開始）';st.textContent='待機中';clearTimeout(timer);timer=null;if(raf){cancelAnimationFrame(raf);raf=null;}asm.setAttribute('transform','rotate(0 180 220)');bell.removeAttribute('transform');tz.removeAttribute('transform');clapper.removeAttribute('transform');}
+  function schedule(){const r=+rate.value,b=2000-r*15,j=Math.random()*600;timer=setTimeout(function(){chime();if(running)schedule();},Math.max(300,b+j));}
+
+  function bind(el, fn){ el.addEventListener('click', fn, {passive:true}); el.addEventListener('touchend', fn, {passive:true}); }
+
+  bind(toggle, function(e){ log('toggle tapped'); try{ if(audioCtx.state==='suspended') audioCtx.resume(); running?stop():start(); } catch(err){ log('toggle error: '+err.message); } });
+  bind(hit, function(e){ log('hit tapped'); try{ if(audioCtx.state==='suspended') audioCtx.resume(); chime(); if(!running){ impulse+=6; if(!raf){ let f=0;(function temp(){loop();if(++f>90){cancelAnimationFrame(raf);raf=null;stop();}else requestAnimationFrame(temp);})() } } } catch(err){ log('hit error: '+err.message); } });
+  bind(btnHanabi, function(e){ log('hanabi toggled'); btnHanabi.classList.toggle('on'); btnHanabi.textContent = btnHanabi.classList.contains('on')?'花火大会（開）':'花火大会（關）'; });
+  bind(taptest, function(e){ log('TapTest button fired'); alert('按钮事件已触发'); });
+
+  // 检查是否有遮挡：taparea 只读（pointer-events:none），如果点击页面却没有任何按钮日志，则说明浏览器没触发 click/touchend
+  document.addEventListener('touchend', function(ev){ log('document touchend'); }, {passive:true});
+  document.addEventListener('click', function(ev){ log('document click'); }, {passive:true});
+
+  // 简化烟花（为了排除它可能的影响）
+  const cvs=document.getElementById('hanabi'), ctx=cvs.getContext('2d',{alpha:true}); const DPR=Math.min(window.devicePixelRatio||1,1.5);
+  function resize(){ cvs.width=Math.floor(innerWidth*DPR); cvs.height=Math.floor(innerHeight*DPR); ctx.setTransform(DPR,0,0,DPR,0,0); }
+  resize(); addEventListener('resize', resize);
+  let on=true; const particles=[];
+  function spawn(){ if(!on) return; const x=Math.random()*innerWidth*.7+innerWidth*.15, y=innerHeight+10, ty=Math.random()*innerHeight*.4+60; particles.push({x:x,y:y,vy:-7-Math.random()*3,stage:0,ty:ty}); setTimeout(spawn, 1000); }
+  function explode(x,y){ for(let i=0;i<60;i++){ const a=Math.random()*6.283,s=Math.random()*3+1; particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:60,stage:1}); } }
+  function stepFW(){ ctx.clearRect(0,0,cvs.width/DPR,cvs.height/DPR); for(let i=particles.length-1;i>=0;i--){ const p=particles[i];
+    if(p.stage===0){ p.y+=p.vy; ctx.fillStyle='#ffd166'; ctx.fillRect(p.x-1,p.y-6,2,12); if(p.y<=p.ty){ explode(p.x,p.y); particles.splice(i,1);} }
+    else{ p.x+=p.vx; p.y+=p.vy; p.vy+=.02; p.life--; ctx.globalAlpha=Math.max(p.life/80,0); ctx.fillStyle='#ffd166'; ctx.beginPath(); ctx.arc(p.x,p.y,2,0,7); ctx.fill(); ctx.globalAlpha=1; if(p.life<=0) particles.splice(i,1); } }
+    requestAnimationFrame(stepFW); }
+  spawn(); stepFW();
+});
+</script>
+</body>
+</html>
