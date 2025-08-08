@@ -1,0 +1,182 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
+<title>风铃 / Wind Chime</title>
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="mobile-web-app-capable" content="yes">
+<style>
+  :root{ --ink:#111; --soft:#f3f4f6; --accent:#3b82f6; }
+  *{ box-sizing:border-box; -webkit-tap-highlight-color: transparent; }
+  html,body{ height:100%; margin:0; }
+  body{
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "PingFang SC", "Hiragino Sans", "Noto Sans CJK SC", sans-serif;
+    background: var(--soft);
+    color: var(--ink);
+    display:flex; align-items:center; justify-content:center;
+  }
+  .app{
+    width: min(520px, 100vw);
+    height: 100vh;
+    background: #fff;
+    display:flex; flex-direction:column; align-items:center;
+    padding: env(safe-area-inset-top) 16px calc(16px + env(safe-area-inset-bottom));
+    box-shadow: 0 12px 40px rgba(0,0,0,.1);
+  }
+  .title{
+    width:100%;
+    text-align:left;
+    font-size:18px; color:#666; margin:8px 0 4px;
+  }
+  .canvas{
+    flex: 1 1 auto;
+    width:100%;
+    position:relative;
+    overflow:hidden;
+  }
+  .diamond{
+    width: 200px; height: 200px;
+    border: 3px solid var(--ink);
+    transform: rotate(45deg);
+    position:absolute; top:10vh; left:50%; translate:-50% 0;
+    display:flex; align-items:center; justify-content:center;
+    border-radius: 18px;
+  }
+  .diamond span{ transform: rotate(-45deg); font-weight:700; font-size: clamp(16px, 3.5vw, 22px); }
+  .yes{ position:absolute; top: calc(10vh + 185px); left: 50%; translate: 20px 0; color:#666; font-size:16px;}
+  .line{ position:absolute; top: calc(10vh + 200px); left:50%; translate:-50% 0; width:3px; height:60px; background: var(--ink); }
+  .bell{
+    position:absolute; top: calc(10vh + 260px); left:50%; translate:-50% 0;
+    width: 170px; height: 210px; border:3px solid var(--ink);
+    border-radius: 12px; display:flex; align-items:center; justify-content:center;
+    font-size: 40px; writing-mode:vertical-rl; text-orientation:mixed;
+    user-select:none;
+  }
+  .controls{
+    width:100%; padding-top:8px; display:flex; gap:10px; align-items:center; justify-content:space-between;
+  }
+  button{
+    flex:1 1 auto;
+    padding:14px 16px; border-radius:14px; border:2px solid var(--accent);
+    background:#fff; color: var(--accent); font-size:17px; font-weight:600;
+  }
+  button.on{ background: var(--accent); color:#fff; }
+  .row{ display:flex; width:100%; gap:10px; margin-top:8px; align-items:center; }
+  .sliderWrap{ flex: 1 1 auto; display:flex; align-items:center; gap:10px; color:#555; font-size:14px; }
+  input[type="range"]{ width:100%; }
+  .note{ width:100%; text-align:center; color:#888; font-size:12px; margin-top:6px;}
+</style>
+</head>
+<body>
+  <div class="app">
+    <div class="title">這個是風鈴</div>
+    <div class="canvas">
+      <div class="diamond"><span>風有在吹嗎？</span></div>
+      <div class="yes">yes</div>
+      <div class="line"></div>
+      <div class="bell" id="bell">叮鈴—</div>
+    </div>
+    <div class="controls">
+      <button id="toggle">有風（開始）</button>
+      <button id="one">只響一下</button>
+    </div>
+    <div class="row">
+      <div class="sliderWrap">
+        <span>風速</span>
+        <input id="rate" type="range" min="0" max="100" value="40">
+      </div>
+      <div id="status" style="min-width:92px; text-align:right; color:#666; font-size:14px;">待機中</div>
+    </div>
+    <div class="note">提示：首次点击需要激活声音；添加到主屏可全屏使用。</div>
+  </div>
+
+<script>
+// WebAudio setup
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+let windTimer=null, running=false;
+
+function chime(){
+  const now = ctx.currentTime;
+  function bellTone(freq, t){
+    const o = ctx.createOscillator();
+    const m = ctx.createOscillator();
+    const g = ctx.createGain();
+    const mg = ctx.createGain();
+    const out = ctx.createGain();
+
+    o.type="sine"; o.frequency.value=freq;
+    m.type="sine"; m.frequency.value=freq*1.5;
+    mg.gain.value=400;
+
+    g.gain.setValueAtTime(0, now+t);
+    g.gain.linearRampToValueAtTime(0.9, now+t+0.01);
+    g.gain.exponentialRampToValueAtTime(0.0001, now+t+1.5);
+    out.gain.value=0.6;
+
+    m.connect(mg); mg.connect(o.frequency);
+    o.connect(g).connect(out).connect(ctx.destination);
+    o.start(now+t); m.start(now+t);
+    o.stop(now+t+1.6); m.stop(now+t+1.6);
+  }
+  bellTone(1200, 0.00);
+  bellTone(800 , 0.06);
+  bellTone(1500, 0.18);
+
+  const bell = document.getElementById('bell');
+  bell.animate([
+    {transform:"translate(-50%,0) rotate(0deg)"},
+    {transform:"translate(-50%,0) rotate(10deg)"},
+    {transform:"translate(-50%,0) rotate(-10deg)"},
+    {transform:"translate(-50%,0) rotate(0deg)"}
+  ], {duration:650, easing:"ease-out"});
+}
+
+function scheduleLoop(){
+  const rate = document.getElementById('rate').value;
+  const baseMs = 2000 - rate*15;
+  const jitter = Math.random()*600;
+  windTimer = setTimeout(()=>{
+    chime();
+    if(running) scheduleLoop();
+  }, Math.max(300, baseMs + jitter));
+}
+
+function startWind(){
+  if(running) return;
+  running = true;
+  document.getElementById('toggle').classList.add('on');
+  document.getElementById('toggle').textContent = '停風（停止）';
+  document.getElementById('status').textContent = '風在吹：響鈴中…';
+  scheduleLoop();
+}
+function stopWind(){
+  running = false;
+  document.getElementById('toggle').classList.remove('on');
+  document.getElementById('toggle').textContent = '有風（開始）';
+  document.getElementById('status').textContent = '待機中';
+  clearTimeout(windTimer); windTimer=null;
+}
+
+document.getElementById('toggle').addEventListener('click', ()=>{
+  if(ctx.state==='suspended') ctx.resume();
+  running ? stopWind() : startWind();
+});
+document.getElementById('one').addEventListener('click', ()=>{
+  if(ctx.state==='suspended') ctx.resume();
+  chime();
+});
+document.getElementById('rate').addEventListener('input', ()=>{
+  if(!running) return;
+  clearTimeout(windTimer);
+  scheduleLoop();
+});
+
+// iOS gesture resume
+window.addEventListener('touchstart', ()=>{
+  if(ctx.state==='suspended') ctx.resume();
+}, {once:true});
+</script>
+</body>
+</html>
