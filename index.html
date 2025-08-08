@@ -40,7 +40,7 @@
     width: 200px; height: 200px;
     border: 3px solid var(--ink);
     transform: rotate(45deg);
-    position:absolute; top:10vh; left:50%; translate:-50% 0;
+    position:absolute; top:10vh; left:50%; transform-origin:center;
     display:flex; align-items:center; justify-content:center;
     border-radius: 18px;
   }
@@ -48,11 +48,12 @@
   .yes{ position:absolute; top: calc(10vh + 185px); left: 50%; translate: 20px 0; color:#666; font-size:16px;}
   .line{ position:absolute; top: calc(10vh + 200px); left:50%; translate:-50% 0; width:3px; height:60px; background: var(--ink); }
   .bell{
-    position:absolute; top: calc(10vh + 260px); left:50%; translate:-50% 0;
+    position:absolute; top: calc(10vh + 260px); left:50%;
     width: 170px; height: 210px; border:3px solid var(--ink);
     border-radius: 12px; display:flex; align-items:center; justify-content:center;
     font-size: 40px; writing-mode:vertical-rl; text-orientation:mixed;
     user-select:none;
+    transform-origin: top center;
   }
   .controls{
     width:100%; padding-top:8px; display:flex; gap:10px; align-items:center; justify-content:space-between;
@@ -126,10 +127,10 @@ function chime(){
 
   const bell = document.getElementById('bell');
   bell.animate([
-    {transform:"translate(-50%,0) rotate(0deg)"},
-    {transform:"translate(-50%,0) rotate(10deg)"},
-    {transform:"translate(-50%,0) rotate(-10deg)"},
-    {transform:"translate(-50%,0) rotate(0deg)"}
+    {transform:"rotate(0deg) translateY(0)"},
+    {transform:"rotate(8deg) translateY(-2px)"},
+    {transform:"rotate(-8deg) translateY(-2px)"},
+    {transform:"rotate(0deg) translateY(0)"}
   ], {duration:650, easing:"ease-out"});
 }
 
