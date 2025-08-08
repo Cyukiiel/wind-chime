@@ -1,0 +1,191 @@
+
+<!doctype html>
+<html lang="zh-CN">
+<head>
+<meta charset="utf-8" />
+<meta name="viewport" content="width=device-width,initial-scale=1" />
+<title>风铃小程序</title>
+<style>
+  :root{
+    --bg:#f7f7fb;
+    --ink:#222;
+    --accent:#4a90e2;
+  }
+  html,body{height:100%;}
+  body{
+    margin:0;
+    font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Noto Sans CJK SC", "PingFang SC", "Hiragino Sans GB", "Microsoft YaHei", Arial, sans-serif;
+    background: var(--bg);
+    color: var(--ink);
+    display:flex;align-items:center;justify-content:center;
+  }
+  .board{
+    width:min(720px,94vw);
+    height:min(540px,80vh);
+    background:white;
+    box-shadow:0 8px 24px rgba(0,0,0,.08);
+    border-radius:16px;
+    position:relative;
+    overflow:hidden;
+  }
+  .title{
+    position:absolute;left:16px;top:12px;font-size:18px;color:#666;
+  }
+  .diamond{
+    width:220px;height:220px;
+    background:transparent;border:3px solid var(--ink);
+    transform:rotate(45deg);
+    position:absolute;top:70px;left:50%;translate:-50% 0;
+    display:flex;align-items:center;justify-content:center;
+  }
+  .diamond > span{
+    transform:rotate(-45deg);
+    font-size:20px; font-weight:600;
+  }
+  .line{
+    position:absolute; top:280px; left:50%; width:3px; height:50px;
+    background: var(--ink); translate:-50% 0;
+  }
+  .yes{
+    position:absolute; top:260px; left:52%;
+    transform:translateX(-50%);
+    font-size:16px; color:#666;
+  }
+  .bell{
+    position:absolute; top:330px; left:50%; translate:-50% 0;
+    width:180px; height:220px; border:3px solid var(--ink);
+    border-radius:8px; display:flex;align-items:center;justify-content:center;
+    font-size:40px; writing-mode:vertical-rl; text-orientation:mixed;
+  }
+  .controls{
+    position:absolute; right:12px; bottom:12px; display:flex; gap:8px; flex-wrap:wrap; align-items:center;
+  }
+  button, input[type="range"]{
+    font-size:16px; padding:10px 14px; border-radius:10px; border:2px solid var(--accent); background:white; color:var(--accent);
+  }
+  button.on{ background: var(--accent); color:white; }
+  .hint{position:absolute;left:16px;bottom:14px;color:#888;font-size:14px}
+</style>
+</head>
+<body>
+  <div class="board">
+    <div class="title">這個是風鈴</div>
+
+    <div class="diamond" id="q"><span>風有在吹嗎？</span></div>
+    <div class="yes">yes</div>
+    <div class="line"></div>
+
+    <div class="bell" id="bell">叮鈴—</div>
+
+    <div class="controls">
+      <button id="toggle">有風（開始）</button>
+      <button id="one">只響一下</button>
+      <label style="font-size:14px;color:#555">風速
+        <input id="rate" type="range" min="0" max="100" value="40" />
+      </label>
+      <span id="status" style="color:#555;font-size:14px">待機中</span>
+    </div>
+    <div class="hint">提示：点“有風（開始）”即可循环响铃；拖动“風速”可改变响铃频率。</div>
+  </div>
+
+<script>
+/* Simple bell sound via WebAudio (FM-ish) */
+const ctx = new (window.AudioContext || window.webkitAudioContext)();
+let windTimer=null, running=false;
+
+function chime(){
+  const now = ctx.currentTime;
+  // Carrier: base tone ~1200Hz decaying quickly (bell-like)
+  function bellTone(freq, timeOffset){
+    const carrier = ctx.createOscillator();
+    const mod = ctx.createOscillator();
+    const gain = ctx.createGain();
+    const modGain = ctx.createGain();
+    const out = ctx.createGain();
+
+    carrier.type = "sine";
+    carrier.frequency.value = freq;
+
+    mod.type = "sine";
+    mod.frequency.value = freq * 1.5;
+    modGain.gain.value = 400;
+
+    gain.gain.setValueAtTime(0, now + timeOffset);
+    gain.gain.linearRampToValueAtTime(0.9, now + timeOffset + 0.005);
+    gain.gain.exponentialRampToValueAtTime(0.0001, now + timeOffset + 1.4);
+
+    out.gain.value = 0.6;
+
+    mod.connect(modGain);
+    modGain.connect(carrier.frequency);
+    carrier.connect(gain).connect(out).connect(ctx.destination);
+
+    carrier.start(now + timeOffset);
+    mod.start(now + timeOffset);
+    carrier.stop(now + timeOffset + 1.6);
+    mod.stop(now + timeOffset + 1.6);
+  }
+  // Two quick partials, then a faint after-ring
+  bellTone(1200, 0.00);
+  bellTone(800, 0.05);
+  bellTone(1500, 0.18);
+  // Visual wiggle
+  const bell = document.getElementById("bell");
+  bell.animate([{transform:"translate(-50%,0) rotate(0deg)"},{transform:"translate(-50%,0) rotate(8deg)"},{transform:"translate(-50%,0) rotate(-8deg)"},{transform:"translate(-50%,0) rotate(0deg)"}],{duration:600});
+}
+
+function startWind(){
+  if(running) return;
+  running = true;
+  document.getElementById("toggle").classList.add("on");
+  document.getElementById("toggle").textContent = "停風（停止）";
+  document.getElementById("status").textContent = "風在吹：響鈴中…";
+  const rate = document.getElementById("rate");
+  // loop with slight randomness
+  function loop(){
+    const baseMs = 2000 - rate.value*15; // faster when rate increases
+    const jitter = Math.random()*600;
+    chime();
+    windTimer = setTimeout(loop, Math.max(300, baseMs + jitter));
+  }
+  loop();
+}
+
+function stopWind(){
+  running=false;
+  document.getElementById("toggle").classList.remove("on");
+  document.getElementById("toggle").textContent = "有風（開始）";
+  document.getElementById("status").textContent = "待機中";
+  if(windTimer){ clearTimeout(windTimer); windTimer=null; }
+}
+
+document.getElementById("toggle").addEventListener("click", ()=>{
+  if(!running){ startWind(); }
+  else{ stopWind(); }
+});
+
+document.getElementById("one").addEventListener("click", ()=>{
+  chime();
+});
+
+document.getElementById("rate").addEventListener("input", ()=>{
+  // If running, restart timer to immediately apply speed
+  if(running){
+    clearTimeout(windTimer);
+    windTimer = setTimeout(function cycle(){
+      chime();
+      const rate = document.getElementById("rate");
+      const baseMs = 2000 - rate.value*15;
+      const jitter = Math.random()*600;
+      windTimer = setTimeout(cycle, Math.max(300, baseMs + jitter));
+    }, 0);
+  }
+});
+
+// iOS needs user gesture to resume AudioContext
+window.addEventListener('click', ()=>{
+  if (ctx.state === 'suspended') ctx.resume();
+}, {once:true});
+</script>
+</body>
+</html>
