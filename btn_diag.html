@@ -1,0 +1,32 @@
+<!doctype html>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Button Diag</title>
+<style>
+  body{margin:0;font-family:system-ui, -apple-system; background:#0b162a; color:#eaf2ff;}
+  .wrap{max-width:520px;margin:0 auto;padding:16px}
+  button{width:100%;padding:14px 16px;margin:10px 0;font-size:18px;border-radius:12px;border:2px solid #6aa1ff;
+    background:rgba(255,255,255,.06);color:#eaf2ff}
+  #log{white-space:pre-wrap;background:#0e2347;border-radius:12px;padding:12px;height:36vh;overflow:auto}
+  /* 模拟一个可能的遮挡层：默认关闭，点“开遮挡层”后开启 */
+  #overlay{position:fixed;inset:0;background:rgba(255,0,0,.15);display:none;z-index:9999}
+  #overlay.block{display:block;pointer-events:auto} /* 开启后会吃掉所有触摸 */
+  #overlay.none{display:block;pointer-events:none}  /* 只显示，不挡触摸 */
+</style>
+<div class="wrap">
+  <h2>按钮诊断</h2>
+  <button id="btn1" onclick="tap('click btn1')" ontouchend="tap('touchend btn1')">按钮1：只响一下</button>
+  <button id="btn2" onclick="tap('click btn2')" ontouchend="tap('touchend btn2')">按钮2：开始/停止</button>
+  <button id="blk" onclick="toggleBlock()">开遮挡层（吃触摸）</button>
+  <button id="non" onclick="toggleNone()">开遮挡层（不吃触摸）</button>
+  <div id="log"></div>
+</div>
+<div id="overlay" aria-hidden="true"></div>
+<script>
+const log = msg => { const el=document.getElementById('log'); el.textContent = `[${new Date().toLocaleTimeString()}] ${msg}\n` + el.textContent; }
+function tap(msg){ log(msg); alert('按钮可触发：'+msg); }
+function toggleBlock(){ const o=document.getElementById('overlay'); o.className = (o.className==='block') ? '' : 'block'; log('overlay block = '+(o.className==='block')); }
+function toggleNone(){ const o=document.getElementById('overlay'); o.className = (o.className==='none') ? '' : 'none'; log('overlay none  = '+(o.className==='none')); }
+document.addEventListener('touchend', ()=>log('document touchend'));
+document.addEventListener('click',   ()=>log('document click'));
+</script>
