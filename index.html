@@ -4,7 +4,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>風鈴 · 日本花火大会（全功能整合）</title>
+<title>風鈴 · 日本花火大会（修复版）</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -50,13 +50,11 @@
 </style>
 </head>
 <body>
-  <!-- Perf-optimized Japanese Hanabi Festival canvas -->
   <canvas id="hanabi"></canvas>
 
   <div class="app">
     <div class="title">日本花火大会 · 風鈴</div>
     <div class="canvas" id="canvas">
-      <!-- Flow + Fūrin (natural sway) in a single SVG -->
       <svg id="diagram" class="diagramWrap" viewBox="0 0 360 520" xmlns="http://www.w3.org/2000/svg" aria-label="flow and furin">
         <defs>
           <linearGradient id="frameStroke" x1="0" y1="0" x2="1" y2="1">
@@ -75,26 +73,22 @@
           </linearGradient>
         </defs>
 
-        <!-- Diamond -->
         <g transform="translate(180,120) rotate(45) translate(-85,-85)" filter="url(#softShadow)">
           <rect x="0" y="0" width="170" height="170" rx="22" ry="22" fill="#0b1a33" stroke="url(#frameStroke)" stroke-width="6"/>
         </g>
         <text x="180" y="120" text-anchor="middle" dominant-baseline="middle" font-size="20" font-weight="700" fill="#cfe0ff">風有在吹嗎？</text>
 
-        <!-- Whole hanging assembly pivots around (180,220) -->
         <g id="assembly" transform="rotate(0 180 220)">
           <text x="205" y="220" fill="#a7b4d9" font-size="16">yes</text>
           <line x1="180" y1="200" x2="180" y2="220" stroke="#9fb7ff" stroke-width="3"/>
           <line x1="180" y1="220" x2="180" y2="240" stroke="#9fb7ff" stroke-width="3"/>
 
-          <!-- Furin bell -->
           <g id="bellGroup">
             <path d="M130,300 Q180,230 230,300 L230,330 Q180,350 130,330 Z" fill="url(#glassGrad)" stroke="#8db2ff" stroke-width="2"/>
             <ellipse cx="180" cy="300" rx="50" ry="10" fill="url(#rimGrad)" opacity="0.95"/>
             <line id="clapperLine" x1="180" y1="300" x2="180" y2="352" stroke="#9fb7ff" stroke-width="2"/>
             <circle id="clapper" cx="180" cy="360" r="10" fill="#c2d2ff" stroke="#8498cc"/>
           </g>
-          <!-- Tanzaku -->
           <g id="tanzakuGroup">
             <line x1="180" y1="370" x2="180" y2="380" stroke="#9fb7ff" stroke-width="2"/>
             <rect x="165" y="380" width="30" height="70" rx="4" fill="#0f1c33" stroke="#324b7a" />
@@ -123,208 +117,223 @@
       </div>
       <div id="status" style="min-width:92px; text-align:right; color:#a9befe; font-size:14px;">待機中</div>
     </div>
-    <div class="note">夜空 + 自然摆动 + 阵风 + 海浪 + 日本花火大会（升空→开花），已整合完毕。</div>
+    <div class="note">修复：事件失效问题（ID 变量未绑定 & DPR 重复声明），并继续保留夜空/摆动/阵风/海浪/花火。</div>
   </div>
 
 <script>
-/* ------- Fit SVG to viewport ------- */
-function fitDiagram(){
-  const baseW = 360, baseH = 520;
-  const container = document.getElementById('canvas');
-  const target = document.getElementById('diagram');
-  const w = container.clientWidth, h = container.clientHeight;
-  const scale = Math.min(w/baseW, h/baseH);
-  target.style.transform = `scale(${scale})`;
-}
-addEventListener('resize', fitDiagram);
-addEventListener('orientationchange', ()=>setTimeout(fitDiagram, 200));
-setTimeout(fitDiagram, 0);
+document.addEventListener('DOMContentLoaded', () => {
+  /* Cache DOM refs explicitly (no implicit globals) */
+  const $ = id => document.getElementById(id);
+  const toggle = $('toggle'), one=$('one'), gustBtn=$('gustBtn'),
+        ambience=$('ambience'), hanabiBtn=$('hanabiBtn'),
+        rate=$('rate'), status=$('status');
+  const assembly = $('assembly'), bellGroup=$('bellGroup'),
+        tanzakuGroup=$('tanzakuGroup'), clapper=$('clapper');
 
-/* ------- WebAudio + chime ------- */
-const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
-function chime(){
-  const now = audioCtx.currentTime;
-  function bellTone(freq, t){
-    const o=audioCtx.createOscillator(), m=audioCtx.createOscillator();
-    const g=audioCtx.createGain(), mg=audioCtx.createGain(), out=audioCtx.createGain();
-    o.type="sine"; o.frequency.value=freq; m.type="sine"; m.frequency.value=freq*1.5; mg.gain.value=400;
-    g.gain.setValueAtTime(0, now+t); g.gain.linearRampToValueAtTime(0.9, now+t+0.01); g.gain.exponentialRampToValueAtTime(0.0001, now+t+1.6); out.gain.value=0.55;
-    m.connect(mg); mg.connect(o.frequency); o.connect(g).connect(out).connect(audioCtx.destination);
-    o.start(now+t); m.start(now+t); o.stop(now+t+1.7); m.stop(now+t+1.7);
+  /* Fit */
+  function fitDiagram(){
+    const baseW = 360, baseH = 520;
+    const container = document.getElementById('canvas');
+    const target = document.getElementById('diagram');
+    const w = container.clientWidth, h = container.clientHeight;
+    const scale = Math.min(w/baseW, h/baseH);
+    target.style.transform = `scale(${scale})`;
   }
-  bellTone(1400,0.00); bellTone(1000,0.05); bellTone(1800,0.18);
-  addImpulse();
-}
+  addEventListener('resize', fitDiagram);
+  addEventListener('orientationchange', ()=>setTimeout(fitDiagram, 200));
+  setTimeout(fitDiagram, 0);
 
-/* ------- Natural sway for the whole assembly ------- */
-let rafId=null, phase=0, impulse=0, running=false, windTimer=null, gustEnabled=false, gustTimer=null;
-function addImpulse(extra=0){ const r=+rate.value; impulse=Math.max(impulse,6+r/10+extra); }
-function windSwayLoop(){
-  const r=+rate.value, freq=0.6+r/120, baseAmp=1+r/30;
-  phase+=(freq*2*Math.PI)/60; impulse*=0.94; const deg=Math.sin(phase)*(baseAmp+impulse);
-  assembly.setAttribute('transform', `rotate(${deg} 180 220)`);
-  bellGroup.setAttribute('transform', `rotate(${deg*0.2} 180 300)`);
-  tanzakuGroup.setAttribute('transform', `rotate(${deg*0.4} 180 370)`);
-  clapper.setAttribute('transform', `rotate(${deg*0.3} 180 300)`);
-  rafId=requestAnimationFrame(windSwayLoop);
-}
-function scheduleLoop(){ const r=+rate.value, base=2000-r*15, jitter=Math.random()*600; windTimer=setTimeout(()=>{ chime(); if(running) scheduleLoop(); }, Math.max(300, base+jitter)); }
-function startWind(){ if(running) return; running=true; toggle.classList.add('on'); toggle.textContent='停風（停止）'; status.textContent='風在吹：響鈴中…'; if(!rafId) rafId=requestAnimationFrame(windSwayLoop); scheduleLoop(); scheduleGust(); }
-function stopWind(){ running=false; toggle.classList.remove('on'); toggle.textContent='有風（開始）'; status.textContent='待機中'; clearTimeout(windTimer); windTimer=null; if(gustTimer){clearTimeout(gustTimer);gustTimer=null;} if(rafId){cancelAnimationFrame(rafId); rafId=null;} assembly.setAttribute('transform','rotate(0 180 220)'); bellGroup.setAttribute('transform','rotate(0 180 300)'); tanzakuGroup.setAttribute('transform','rotate(0 180 370)'); clapper.setAttribute('transform','rotate(0 180 300)'); }
-
-toggle.onclick = ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); running?stopWind():startWind(); };
-one.onclick = ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); chime(); if(!running){ addImpulse(); if(!rafId){ let frames=0; (function temp(){ windSwayLoop(); if(++frames>90){ cancelAnimationFrame(rafId); rafId=null; stopWind(); } else requestAnimationFrame(temp); })(); } } };
-
-/* ------- Gust mode ------- */
-function scheduleGust(){ if(!gustEnabled||!running) return;
-  const next=1200+Math.random()*5000;
-  gustTimer=setTimeout(()=>{
-    const bursts=1+Math.floor(Math.random()*3), kick=8+Math.random()*8; addImpulse(kick); chime();
-    let i=1; function more(){ if(i>=bursts) return scheduleGust(); addImpulse(kick*(0.7**i)); chime(); i++; setTimeout(more, 220+Math.random()*280); }
-    setTimeout(more, 220+Math.random()*280);
-  }, next);
-}
-gustBtn.onclick = ()=>{ gustEnabled=!gustEnabled; gustBtn.classList.toggle('on',gustEnabled); gustBtn.textContent=gustEnabled?'陣風（開)':'陣風（關)'; if(gustEnabled) scheduleGust(); else if(gustTimer) clearTimeout(gustTimer); };
-
-/* ------- Ocean ambience ------- */
-(function(){ const ctx=audioCtx; let ocean={started:false,gain:null};
-function ensure(){ if(!ocean.started){ const n=ctx.createScriptProcessor(2048,1,1), f=ctx.createBiquadFilter(), g=ctx.createGain(), lfo=ctx.createOscillator(), lg=ctx.createGain();
-  let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0; n.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0); for(let i=0;i<out.length;i++){ const w=Math.random()*2-1;
-    b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759; b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856; b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980; out[i]=(b0+b1+b2+b3+b4+b5+b6 + w*0.5362)*0.08; b6=w*0.115926; } };
-  f.type="lowpass"; f.frequency.value=700; g.gain.value=0.25; lfo.frequency.value=0.08; lg.gain.value=0.35; lfo.connect(lg); lg.connect(g.gain); n.connect(f).connect(g).connect(ctx.destination); lfo.start(); ocean={started:true,gain:g}; } }
-ensure(); ambience.onclick=()=>{ ensure(); if(ambience.classList.contains('on')){ ocean.gain.gain.cancelScheduledValues(audioCtx.currentTime); ocean.gain.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime+0.6); ambience.classList.remove('on'); ambience.textContent='海浪聲（關）'; } else { if(audioCtx.state==='suspended') audioCtx.resume(); ocean.gain.gain.cancelScheduledValues(audioCtx.currentTime); ocean.gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime+0.8); ambience.classList.add('on'); ambience.textContent='海浪聲（開）'; } }; })();
-
-/* ------- Japanese Hanabi Festival (perf-optimized) ------- */
-(function(){
-  const canvas = document.getElementById('hanabi');
-  const ctx = canvas.getContext('2d', {alpha:true});
-  let enabled = true;
-  hanabiBtn.onclick = ()=>{ enabled=!enabled; hanabiBtn.classList.toggle('on',enabled); hanabiBtn.textContent = enabled ? '花火大会（開）' : '花火大会（關）'; };
-
-  const DPR = Math.min(window.devicePixelRatio||1, 1.5);
-  function resize(){ canvas.width=Math.floor(innerWidth*DPR); canvas.height=Math.floor(innerHeight*DPR); ctx.setTransform(DPR,0,0,DPR,0,0); }
-  addEventListener('resize', resize); resize();
-
-  // sprite
-  const sprite = document.createElement('canvas'), S=32; sprite.width=sprite.height=S;
-  const sg=sprite.getContext('2d'); const grad=sg.createRadialGradient(S/2,S/2,1, S/2,S/2,S/2);
-  grad.addColorStop(0,'rgba(255,255,255,1)'); grad.addColorStop(0.4,'rgba(255,255,255,0.9)'); grad.addColorStop(1,'rgba(255,255,255,0)');
-  sg.fillStyle=grad; sg.beginPath(); sg.arc(S/2,S/2,S/2,0,2*Math.PI); sg.fill();
-
-  // pools
-  const MAX_PART=1000, MAX_SHELL=8;
-  const parts = new Array(MAX_PART).fill(0).map(()=>({a:false}));
-  const shells = new Array(MAX_SHELL).fill(0).map(()=>({a:false}));
-  const P=[], S=[];
-  function getP(){ for(const p of parts){ if(!p.a){ p.a=true; P.push(p); return p;} } return null; }
-  function freeP(p){ p.a=false; const i=P.indexOf(p); if(i>-1) P.splice(i,1); }
-  function getS(){ for(const s of shells){ if(!s.a){ s.a=true; S.push(s); return s;} } return null; }
-  function freeS(s){ s.a=false; const i=S.indexOf(s); if(i>-1) S.splice(i,1); }
-
-  const palettes = [
-    ["#ff6a6a","#ffd166","#fff5a3"],
-    ["#86e2ff","#b794f4","#f6a9d6"],
-    ["#78e08f","#d1ffd6","#fff8dc"],
-    ["#ffd1dc","#a8d5ff","#c1ffd7"]
-  ];
-
-  function launchShell(x=null){
-    if(!enabled) return;
-    const s=getS(); if(!s) return;
-    const W=innerWidth, H=innerHeight;
-    s.x = (x==null)? (W*0.15 + Math.random()*W*0.7) : x;
-    s.y = H + 20;
-    s.vx=(Math.random()*2-1)*0.5; s.vy=-(8+Math.random()*4);
-    s.type = ["kiku","peony","ring","willow"][Math.random()*4|0];
-    s.colors = palettes[Math.random()*palettes.length|0];
-    s.hBurst = H*(0.25+Math.random()*0.25);
-    s.life=0;
-  }
-
-  function burst(x,y,type,colors){
-    const load = P.length / MAX_PART;
-    const base = (load < 0.5) ? 120 : (load < 0.7) ? 90 : 60;
-    const pick = ()=>colors[Math.random()*colors.length|0];
-
-    if(type==="ring"){
-      const n=base, r=2.4;
-      for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
-        const a=i/n*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*r; p.vy=Math.sin(a)*r; p.g=0.02; p.life=80; p.size=2; p.c=pick(); p.alpha=1; }
-    }else if(type==="kiku"){
-      const n=base, r=2.8;
-      for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
-        const a=i/n*2*Math.PI + (Math.random()-0.5)*0.02; const k=1+Math.sin(8*a)*0.15;
-        p.x=x; p.y=y; p.vx=Math.cos(a)*r*k; p.vy=Math.sin(a)*r*k; p.g=0.018; p.life=90; p.size=2.4; p.c=pick(); p.alpha=1; }
-    }else if(type==="willow"){
-      const n=base*0.9, r=2.2;
-      for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
-        const a=Math.random()*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*r*0.8; p.vy=Math.sin(a)*r*0.6; p.g=0.035; p.life=110; p.size=2.2; p.c="#ffd166"; p.alpha=1; }
-    }else{ // peony
-      const n=base, r=2.5;
-      for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
-        const a=Math.random()*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*r; p.vy=Math.sin(a)*r; p.g=0.02; p.life=85; p.size=2.2; p.c=pick(); p.alpha=1; }
-      for(let i=0;i<base*0.15;i++){ const p=getP(); if(!p) break;
-        const a=Math.random()*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*1.0; p.vy=Math.sin(a)*1.0; p.g=0.02; p.life=70; p.size=1.8; p.c=pick(); p.alpha=1; }
+  /* Audio / chime */
+  const audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+  function chime(){
+    const now = audioCtx.currentTime;
+    function bellTone(freq, t){
+      const o=audioCtx.createOscillator(), m=audioCtx.createOscillator();
+      const g=audioCtx.createGain(), mg=audioCtx.createGain(), out=audioCtx.createGain();
+      o.type="sine"; o.frequency.value=freq; m.type="sine"; m.frequency.value=freq*1.5; mg.gain.value=400;
+      g.gain.setValueAtTime(0, now+t); g.gain.linearRampToValueAtTime(0.9, now+t+0.01); g.gain.exponentialRampToValueAtTime(0.0001, now+t+1.6); out.gain.value=0.55;
+      m.connect(mg); mg.connect(o.frequency); o.connect(g).connect(out).connect(audioCtx.destination);
+      o.start(now+t); m.start(now+t); o.stop(now+t+1.7); m.stop(now+t+1.7);
     }
+    bellTone(1400,0.00); bellTone(1000,0.05); bellTone(1800,0.18);
+    addImpulse();
   }
 
-  function trail(x,y,color){
-    const p=getP(); if(!p) return;
-    p.x=x; p.y=y; p.vx=(Math.random()*2-1)*0.2; p.vy=(Math.random()*2-1)*0.2; p.g=0.0; p.life=20; p.size=1.6; p.c=color; p.alpha=0.8;
+  /* Sway + wind + gust */
+  let rafId=null, phase=0, impulse=0, running=false, windTimer=null, gustEnabled=false, gustTimer=null;
+  function addImpulse(extra=0){ const r=+rate.value; impulse=Math.max(impulse,6+r/10+extra); }
+  function windSwayLoop(){
+    const r=+rate.value, freq=0.6+r/120, baseAmp=1+r/30;
+    phase+=(freq*2*Math.PI)/60; impulse*=0.94; const deg=Math.sin(phase)*(baseAmp+impulse);
+    assembly.setAttribute('transform', `rotate(${deg} 180 220)`);
+    bellGroup.setAttribute('transform', `rotate(${deg*0.2} 180 300)`);
+    tanzakuGroup.setAttribute('transform', `rotate(${deg*0.4} 180 370)`);
+    clapper.setAttribute('transform', `rotate(${deg*0.3} 180 300)`);
+    rafId=requestAnimationFrame(windSwayLoop);
   }
-
-  let lastLaunch=0;
-  function schedule(now){
-    if(!enabled) return;
-    if(now-lastLaunch > 600 + Math.random()*900){ launchShell(); lastLaunch=now; }
-    if(Math.random() < 0.02){ launchShell(); }
+  function scheduleLoop(){ const r=+rate.value, base=2000-r*15, jitter=Math.random()*600; windTimer=setTimeout(()=>{ chime(); if(running) scheduleLoop(); }, Math.max(300, base+jitter)); }
+  function scheduleGust(){ if(!gustEnabled||!running) return;
+    const next=1200+Math.random()*5000;
+    gustTimer=setTimeout(()=>{
+      const bursts=1+Math.floor(Math.random()*3), kick=8+Math.random()*8; addImpulse(kick); chime();
+      let i=1; function more(){ if(i>=bursts) return scheduleGust(); addImpulse(kick*(0.7**i)); chime(); i++; setTimeout(more, 220+Math.random()*280); }
+      setTimeout(more, 220+Math.random()*280);
+    }, next);
   }
+  function startWind(){ if(running) return; running=true; toggle.classList.add('on'); toggle.textContent='停風（停止）'; status.textContent='風在吹：響鈴中…'; if(!rafId) rafId=requestAnimationFrame(windSwayLoop); scheduleLoop(); scheduleGust(); }
+  function stopWind(){ running=false; toggle.classList.remove('on'); toggle.textContent='有風（開始）'; status.textContent='待機中'; clearTimeout(windTimer); windTimer=null; if(gustTimer){clearTimeout(gustTimer);gustTimer=null;} if(rafId){cancelAnimationFrame(rafId); rafId=null;} assembly.setAttribute('transform','rotate(0 180 220)'); bellGroup.setAttribute('transform','rotate(0 180 300)'); tanzakuGroup.setAttribute('transform','rotate(0 180 370)'); clapper.setAttribute('transform','rotate(0 180 300)'); }
 
-  let last=performance.now();
-  function step(now){
-    const dt=(now-last)||16; last=now;
-    schedule(now);
+  toggle.addEventListener('click', ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); running?stopWind():startWind(); });
+  one.addEventListener('click', ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); chime(); if(!running){ addImpulse(); if(!rafId){ let frames=0; (function temp(){ windSwayLoop(); if(++frames>90){ cancelAnimationFrame(rafId); rafId=null; stopWind(); } else requestAnimationFrame(temp); })(); } } });
+  gustBtn.addEventListener('click', ()=>{ gustEnabled=!gustEnabled; gustBtn.classList.toggle('on',gustEnabled); gustBtn.textContent=gustEnabled?'陣風（開）':'陣風（關）'; if(gustEnabled) scheduleGust(); else if(gustTimer) clearTimeout(gustTimer); });
 
-    const W = canvas.width / DPR, H = canvas.height / DPR;
-    ctx.clearRect(0,0,W,H);
-    ctx.globalCompositeOperation='lighter';
+  /* Ocean ambience */
+  (function(){ const ctx=audioCtx; let ocean={started:false,gain:null};
+    function ensure(){ if(!ocean.started){ const n=ctx.createScriptProcessor(2048,1,1), f=ctx.createBiquadFilter(), g=ctx.createGain(), lfo=ctx.createOscillator(), lg=ctx.createGain();
+      let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0; n.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0); for(let i=0;i<out.length;i++){ const w=Math.random()*2-1;
+        b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759; b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856; b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980; out[i]=(b0+b1+b2+b3+b4+b5+b6 + w*0.5362)*0.08; b6=w*0.115926; } };
+      f.type="lowpass"; f.frequency.value=700; g.gain.value=0.25; lfo.frequency.value=0.08; lg.gain.value=0.35; lfo.connect(lg); lg.connect(g.gain); n.connect(f).connect(g).connect(ctx.destination); lfo.start(); ocean={started:true,gain:g}; } }
+    ensure();
+    ambience.addEventListener('click', ()=>{
+      ensure();
+      if(ambience.classList.contains('on')){
+        ocean.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+        ocean.gain.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.6);
+        ambience.classList.remove('on'); ambience.textContent='海浪聲（關）';
+      }else{
+        if(audioCtx.state==='suspended') audioCtx.resume();
+        ocean.gain.gain.cancelScheduledValues(audioCtx.currentTime);
+        ocean.gain.gain.linearRampToValueAtTime(0.25, audioCtx.currentTime + 0.8);
+        ambience.classList.add('on'); ambience.textContent='海浪聲（開）';
+      }
+    });
+  })();
 
-    // rising shells
-    for(let i=S.length-1;i>=0;i--){
-      const s=S[i];
-      s.x += s.vx; s.y += s.vy; s.vy += 0.08;
-      s.life += dt;
-      if(s.life%40<20) trail(s.x, s.y, s.colors[0]);
-      ctx.drawImage(sprite, s.x-2, s.y-6, 4, 12);
-      if(s.vy>0 || s.y < s.hBurst){
-        burst(s.x, s.y, s.type, s.colors);
-        freeS(s);
+  /* Japanese Hanabi Festival (perf-optimized, single DPR/resize) */
+  (function(){
+    const canvas = document.getElementById('hanabi');
+    const ctx = canvas.getContext('2d', {alpha:true});
+    let enabled = true;
+
+    hanabiBtn.addEventListener('click', ()=>{
+      enabled = !enabled;
+      hanabiBtn.classList.toggle('on', enabled);
+      hanabiBtn.textContent = enabled ? '花火大会（開）' : '花火大会（關）';
+    });
+
+    const DPR = Math.min(window.devicePixelRatio||1, 1.5);
+    function resize(){ canvas.width=Math.floor(innerWidth*DPR); canvas.height=Math.floor(innerHeight*DPR); ctx.setTransform(DPR,0,0,DPR,0,0); }
+    addEventListener('resize', resize); resize();
+
+    // sprite
+    const sprite = document.createElement('canvas'), S=32; sprite.width=sprite.height=S;
+    const sg=sprite.getContext('2d'); const grad=sg.createRadialGradient(S/2,S/2,1, S/2,S/2,S/2);
+    grad.addColorStop(0,'rgba(255,255,255,1)'); grad.addColorStop(0.4,'rgba(255,255,255,0.9)'); grad.addColorStop(1,'rgba(255,255,255,0)');
+    sg.fillStyle=grad; sg.beginPath(); sg.arc(S/2,S/2,S/2,0,2*Math.PI); sg.fill();
+
+    const MAX_PART=1000, MAX_SHELL=8;
+    const parts = new Array(MAX_PART).fill(0).map(()=>({a:false}));
+    const shells = new Array(MAX_SHELL).fill(0).map(()=>({a:false}));
+    const P=[], S=[];
+    function getP(){ for(const p of parts){ if(!p.a){ p.a=true; P.push(p); return p;} } return null; }
+    function freeP(p){ p.a=false; const i=P.indexOf(p); if(i>-1) P.splice(i,1); }
+    function getS(){ for(const s of shells){ if(!s.a){ s.a=true; S.push(s); return s;} } return null; }
+    function freeS(s){ s.a=false; const i=S.indexOf(s); if(i>-1) S.splice(i,1); }
+
+    const palettes = [
+      ["#ff6a6a","#ffd166","#fff5a3"],
+      ["#86e2ff","#b794f4","#f6a9d6"],
+      ["#78e08f","#d1ffd6","#fff8dc"],
+      ["#ffd1dc","#a8d5ff","#c1ffd7"]
+    ];
+
+    function launchShell(x=null){
+      if(!enabled) return;
+      const s=getS(); if(!s) return;
+      const W=innerWidth, H=innerHeight;
+      s.x = (x==null)? (W*0.15 + Math.random()*W*0.7) : x;
+      s.y = H + 20;
+      s.vx=(Math.random()*2-1)*0.5; s.vy=-(8+Math.random()*4);
+      s.type = ["kiku","peony","ring","willow"][Math.random()*4|0];
+      s.colors = palettes[Math.random()*palettes.length|0];
+      s.hBurst = H*(0.25+Math.random()*0.25);
+      s.life=0;
+    }
+
+    function burst(x,y,type,colors){
+      const load = P.length / MAX_PART;
+      const base = (load < 0.5) ? 120 : (load < 0.7) ? 90 : 60;
+      const pick = ()=>colors[Math.random()*colors.length|0];
+
+      if(type==="ring"){
+        const n=base, r=2.4;
+        for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
+          const a=i/n*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*r; p.vy=Math.sin(a)*r; p.g=0.02; p.life=80; p.size=2; p.c=pick(); p.alpha=1; }
+      }else if(type==="kiku"){
+        const n=base, r=2.8;
+        for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
+          const a=i/n*2*Math.PI + (Math.random()-0.5)*0.02; const k=1+Math.sin(8*a)*0.15;
+          p.x=x; p.y=y; p.vx=Math.cos(a)*r*k; p.vy=Math.sin(a)*r*k; p.g=0.018; p.life=90; p.size=2.4; p.c=pick(); p.alpha=1; }
+      }else if(type==="willow"){
+        const n=base*0.9, r=2.2;
+        for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
+          const a=Math.random()*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*r*0.8; p.vy=Math.sin(a)*r*0.6; p.g=0.035; p.life=110; p.size=2.2; p.c="#ffd166"; p.alpha=1; }
+      }else{ // peony
+        const n=base, r=2.5;
+        for(let i=0;i<n;i++){ const p=getP(); if(!p) break;
+          const a=Math.random()*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*r; p.vy=Math.sin(a)*r; p.g=0.02; p.life=85; p.size=2.2; p.c=pick(); p.alpha=1; }
+        for(let i=0;i<base*0.15;i++){ const p=getP(); if(!p) break;
+          const a=Math.random()*2*Math.PI; p.x=x; p.y=y; p.vx=Math.cos(a)*1.0; p.vy=Math.sin(a)*1.0; p.g=0.02; p.life=70; p.size=1.8; p.c=pick(); p.alpha=1; }
       }
     }
 
-    // particles
-    for(let i=P.length-1;i>=0;i--){
-      const p=P[i];
-      p.x += p.vx; p.y += p.vy; p.vy += p.g;
-      p.life -= 1; p.alpha = p.life/90;
-      if(p.alpha<=0){ freeP(p); continue; }
-      ctx.globalAlpha = Math.max(0, Math.min(1, p.alpha));
-      ctx.drawImage(sprite, p.x - p.size*2, p.y - p.size*2, p.size*4, p.size*4);
+    function trail(x,y,color){
+      const p=getP(); if(!p) return;
+      p.x=x; p.y=y; p.vx=(Math.random()*2-1)*0.2; p.vy=(Math.random()*2-1)*0.2; p.g=0.0; p.life=20; p.size=1.6; p.c=color; p.alpha=0.8;
+    }
+
+    let lastLaunch=0;
+    function schedule(now){
+      if(!enabled) return;
+      if(now-lastLaunch > 600 + Math.random()*900){ launchShell(); lastLaunch=now; }
+      if(Math.random() < 0.02){ launchShell(); }
+    }
+
+    let last=performance.now();
+    function step(now){
+      const dt=(now-last)||16; last=now;
+      schedule(now);
+
+      const W = canvas.width / DPR, H = canvas.height / DPR;
+      ctx.clearRect(0,0,W,H);
+      ctx.globalCompositeOperation='lighter';
+
+      for(let i=S.length-1;i>=0;i--){
+        const s=S[i];
+        s.x += s.vx; s.y += s.vy; s.vy += 0.08;
+        s.life += dt;
+        if(s.life%40<20) trail(s.x, s.y, s.colors[0]);
+        ctx.drawImage(sprite, s.x-2, s.y-6, 4, 12);
+        if(s.vy>0 || s.y < s.hBurst){ burst(s.x, s.y, s.type, s.colors); freeS(s); }
+      }
+
+      for(let i=P.length-1;i>=0;i--){
+        const p=P[i];
+        p.x += p.vx; p.y += p.vy; p.vy += p.g;
+        p.life -= 1; p.alpha = p.life/90;
+        if(p.alpha<=0){ freeP(p); continue; }
+        ctx.globalAlpha = Math.max(0, Math.min(1, p.alpha));
+        ctx.drawImage(sprite, p.x - p.size*2, p.y - p.size*2, p.size*4, p.size*4);
+      }
+      requestAnimationFrame(step);
     }
     requestAnimationFrame(step);
-  }
+    setTimeout(()=>{ launchShell(innerWidth*0.3); launchShell(innerWidth*0.5); launchShell(innerWidth*0.7); }, 800);
+  })();
 
-  const DPR = Math.min(window.devicePixelRatio||1, 1.5);
-  function resize(){ canvas.width=Math.floor(innerWidth*DPR); canvas.height=Math.floor(innerHeight*DPR); ctx.setTransform(DPR,0,0,DPR,0,0); }
-  addEventListener('resize', resize); resize();
-
-  requestAnimationFrame(step);
-  // initial launch
-  setTimeout(()=>{ launchShell(innerWidth*0.3); launchShell(innerWidth*0.5); launchShell(innerWidth*0.7); }, 800);
-})();
-
-/* ------- iOS unlock ------- */
-addEventListener('touchstart', ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); }, {once:true});
+  /* iOS unlock */
+  window.addEventListener('touchstart', ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); }, {once:true});
+});
 </script>
 </body>
 </html>
