@@ -1,10 +1,9 @@
-
 <!doctype html>
 <html lang="zh-CN">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover, user-scalable=no">
-<title>風鈴 · 日本夏日祭 v21.3</title>
+<title>風鈴 · 夏日祭 v22.1（单文件·合并版）</title>
 <meta name="apple-mobile-web-app-capable" content="yes">
 <meta name="mobile-web-app-capable" content="yes">
 <style>
@@ -18,7 +17,7 @@
     -webkit-overflow-scrolling: touch;
     padding-top: calc(8px + env(safe-area-inset-top));
   }
-  #hanabi{ position:fixed; inset:0; z-index:0; pointer-events:none; }
+  #fw{ position:fixed; inset:0; z-index:0; pointer-events:none }
   .app{ position: relative; z-index: 1; width:min(540px, 100vw); min-height:calc(100vh - env(safe-area-inset-top));
         background: rgba(5, 10, 20, 0.55); backdrop-filter: blur(4px);
         border-radius: 18px; display:flex; flex-direction:column; align-items:center;
@@ -40,7 +39,6 @@
   input[type="range"]{ width:100%; }
   .note{ width:100%; text-align:center; color:#8fa5d6; font-size:12px; margin-top:4px;}
   #err{ position:fixed; left:8px; right:8px; top:8px; z-index:9; background:#ff3b30; color:#fff; padding:10px 12px; border-radius:10px; box-shadow:0 8px 24px rgba(0,0,0,.3); font-size:13px; display:none; white-space:pre-wrap; }
-  /* 右下角小点：绿=已绑定，红=未绑定；每次按钮触发闪白 */
   #dot{ position:fixed; right:10px; bottom:10px; width:14px; height:14px; border-radius:50%; z-index:10; background:#f33; box-shadow:0 0 0 2px rgba(0,0,0,.25); }
   #dot.ok{ background:#22c55e; }
   #dot.flash{ box-shadow:0 0 0 6px rgba(255,255,255,.6); transition: box-shadow .18s ease; }
@@ -49,7 +47,7 @@
 <body>
   <div id="err"></div>
   <div id="dot" title="init status"></div>
-  <canvas id="hanabi"></canvas>
+  <canvas id="fw"></canvas>
 
   <div class="app">
     <div class="title">日本夏日祭 · 風鈴</div>
@@ -61,12 +59,16 @@
           <radialGradient id="glassGrad" cx="50%" cy="40%" r="60%"><stop offset="0%" stop-color="#cfe8ff" stop-opacity="0.95"/><stop offset="60%" stop-color="#9ec9ff" stop-opacity="0.38"/><stop offset="100%" stop-color="#4aa0ff" stop-opacity="0.18"/></radialGradient>
           <linearGradient id="rimGrad" x1="0" x2="0" y1="0" y2="1"><stop offset="0%" stop-color="#8fb9ff"/><stop offset="100%" stop-color="#4a98ff"/></linearGradient>
         </defs>
-        <g transform="translate(180,120) rotate(45) translate(-85,-85)" filter="url(#softShadow)"><rect x="0" y="0" width="170" height="170" rx="22" ry="22" fill="#0b1a33" stroke="url(#frameStroke)" stroke-width="6"/></g>
+        <g transform="translate(180,120) rotate(45) translate(-85,-85)" filter="url(#softShadow)">
+          <rect x="0" y="0" width="170" height="170" rx="22" ry="22" fill="#0b1a33" stroke="url(#frameStroke)" stroke-width="6"/>
+        </g>
         <text x="180" y="120" text-anchor="middle" dominant-baseline="middle" font-size="20" font-weight="700" fill="#cfe0ff">風有在吹嗎？</text>
+
         <g id="assembly" transform="rotate(0 180 220)">
           <text x="205" y="220" fill="#a7b4d9" font-size="16">yes</text>
           <line x1="180" y1="200" x2="180" y2="220" stroke="#9fb7ff" stroke-width="3"/>
           <line x1="180" y1="220" x2="180" y2="240" stroke="#9fb7ff" stroke-width="3"/>
+
           <g id="bellGroup">
             <path d="M130,300 Q180,230 230,300 L230,330 Q180,350 130,330 Z" fill="url(#glassGrad)" stroke="#8db2ff" stroke-width="2"/>
             <ellipse cx="180" cy="300" rx="50" ry="10" fill="url(#rimGrad)" opacity="0.95"/>
@@ -76,10 +78,7 @@
           <g id="tanzakuGroup">
             <line x1="180" y1="382" x2="180" y2="392" stroke="#9fb7ff" stroke-width="2"/>
             <rect x="165" y="392" width="30" height="70" rx="4" fill="#0f1c33" stroke="#324b7a" />
-            <path d="M170 420 q10 -10 20 0" stroke="#3c62a3" fill="none" opacity="0.6"/>
-            <path d="M170 435 q10 -10 20 0" stroke="#3c62a3" fill="none" opacity="0.6"/>
-            <text id="tztext" x="180" y="397" text-anchor="middle" fill="#b7d0ff" font-size="14"
-                  style="font-family:'Hiragino Sans','PingFang SC',sans-serif; writing-mode:vertical-rl; text-orientation:upright;">香橙布叮铃铃</text>
+            <text id="tztext" x="180" y="397" text-anchor="middle" fill="#b7d0ff" font-size="14" style="font-family:'Hiragino Sans','PingFang SC',sans-serif; writing-mode:vertical-rl;">香橙布叮铃铃</text>
           </g>
         </g>
       </svg>
@@ -97,87 +96,202 @@
       <div class="sliderWrap"><span>風速</span><input id="rate" type="range" min="0" max="100" value="45"></div>
       <div id="status" style="min-width:92px; text-align:right; color:#a9befe; font-size:14px;">待機中</div>
     </div>
-    <div class="note">v21.3：触控修复 + 安全区顶边 + 右下角状态点（绿=已就绪）。</div>
+    <div class="note">v22.1：全按钮 try-catch、防崩；花火安全加载；iPhone 触控 OK。</div>
   </div>
 
 <script>
-// Error banner
+/* ---- 错误提示 ---- */
 (function(){
   const box = document.getElementById('err');
   window.addEventListener('error', e=>{ box.style.display='block'; box.textContent='[JS Error] '+(e.message||'')+'\\n'+(e.filename||'')+':'+(e.lineno||'')+':'+(e.colno||''); });
   window.addEventListener('unhandledrejection', e=>{ box.style.display='block'; box.textContent='[Promise Rejection] '+(e.reason&&e.reason.message?e.reason.message:e.reason); });
 })();
-
-// iOS unlock
+const dot = document.getElementById('dot');
+function flashDot(){ dot.classList.add('flash'); setTimeout(()=>dot.classList.remove('flash'), 160); }
+function bind(el, fn){ el.addEventListener('click', e=>{ try{ fn(e); }catch(err){ console.error(err); } flashDot(); }, {passive:false}); el.addEventListener('touchend', e=>{ try{ fn(e); }catch(err){ console.error(err); } flashDot(); }, {passive:false}); }
+/* iOS 音频解锁 */
 window.addEventListener('touchstart', ()=>{ try{ if(window.__audio && __audio.state==='suspended') __audio.resume(); }catch(e){} }, {passive:true});
 
-function flashDot(){ const d=document.getElementById('dot'); d.classList.add('flash'); setTimeout(()=>d.classList.remove('flash'),180); }
-
+/* ---- 初始化 ---- */
 function init(){
-  const d=document.getElementById('dot');
+try{
   const $=id=>document.getElementById(id);
   const assembly=$('assembly'), bellGroup=$('bellGroup'), tanzakuGroup=$('tanzakuGroup'), clapper=$('clapper');
   const toggle=$('toggle'), one=$('one'), gustBtn=$('gustBtn'), ambience=$('ambience'), hanabiBtn=$('hanabiBtn'), livelyBtn=$('livelyBtn');
-  const rate=$('rate'), status=$('status');
-  if(!assembly||!toggle||!rate){ return; } // DOM 还没好，等下一个钩子
+  const rate=$('rate'), status=$('status'); if(!assembly||!toggle||!rate) return;
 
-  // mark ok
-  d.classList.add('ok');
+  dot.classList.add('ok');
 
-  // Audio
-  const audioCtx=new (window.AudioContext||window.webkitAudioContext)(); window.__audio=audioCtx;
+  /* 自适应缩放 */
+  (function(){ const baseW=360, baseH=520; const container=document.getElementById('canvas'); const target=document.getElementById('diagram');
+    function fit(){ const w=container.clientWidth||baseW, h=container.clientHeight||baseH; target.style.transform='scale('+Math.min(w/baseW,h/baseH)+')'; }
+    addEventListener('resize', fit); setTimeout(fit, 0);
+  })();
+
+  /* 音频：风铃 */
+  const audioCtx = new (window.AudioContext||window.webkitAudioContext)(); window.__audio=audioCtx;
   function chime(){ const now=audioCtx.currentTime;
-    function bellTone(freq,t,gain){const o=audioCtx.createOscillator(),m=audioCtx.createOscillator(),g=audioCtx.createGain(),mg=audioCtx.createGain(),out=audioCtx.createGain();o.type='sine';o.frequency.value=freq;m.type='sine';m.frequency.value=freq*1.5;mg.gain.value=400;g.gain.setValueAtTime(0,now+t);g.gain.linearRampToValueAtTime(0.9,now+t+.01);g.gain.exponentialRampToValueAtTime(.0001,now+t+1.6);out.gain.value=gain||.55;m.connect(mg);mg.connect(o.frequency);o.connect(g).connect(out).connect(audioCtx.destination);o.start(now+t);m.start(now+t);o.stop(now+t+1.7);m.stop(now+t+1.7);}bellTone(1400,0,0.55);bellTone(1000,0.05,0.45);bellTone(1800,0.18,0.5); addKickDeg(85); }
+    function bellTone(freq,t,gain){const o=audioCtx.createOscillator(),m=audioCtx.createOscillator(),g=audioCtx.createGain(),mg=audioCtx.createGain(),out=audioCtx.createGain();o.type='sine';o.frequency.value=freq;m.type='sine';m.frequency.value=freq*1.5;mg.gain.value=400;g.gain.setValueAtTime(0,now+t);g.gain.linearRampToValueAtTime(0.9,now+t+.01);g.gain.exponentialRampToValueAtTime(.0001,now+t+1.6);out.gain.value=gain||.55;m.connect(mg);mg.connect(o.frequency);o.connect(g).connect(out).connect(audioCtx.destination);o.start(now+t);m.start(now+t);o.stop(now+t+1.7);m.stop(now+t+1.7);} bellTone(1400,0,.55); bellTone(1000,0.05,.45); bellTone(1800,0.18,.5); addKickDeg(85); }
 
-  // Physics
-  let raf=null,running=false,windTimer=null,gustEnabled=false,gustTimer=null;
-  let theta=0,omega=0,lastTS=0,phase=0;
-  let params={T:2.2,zeta:0.10,driveK:0.75,deadbandDeg:0.35,micro:0.6};
-  function setLively(on){ livelyBtn.classList.toggle('on',on); livelyBtn.textContent=on?'灵动（开）':'灵动（关）'; params= on?{T:2.2,zeta:0.10,driveK:0.75,deadbandDeg:0.35,micro:0.7}:{T:2.6,zeta:0.14,driveK:0.60,deadbandDeg:0.40,micro:0.2}; }
+  /* 物理：阻尼摆 + 低通“跟随” */
+  let raf=null, running=false, windTimer=null, gustEnabled=false;
+  let theta=0, omega=0, lastTS=0, phase=0;
+  let params = { T: 2.2, zeta: 0.10, driveK: 0.75, deadbandDeg: 0.35, micro: 0.6 };
+  function setLively(on){ livelyBtn.classList.toggle('on', on); livelyBtn.textContent = on ? '灵动（开）' : '灵动（关）'; params = on ? { T: 2.2, zeta: 0.10, driveK: 0.75, deadbandDeg: 0.35, micro: 0.7 } : { T: 2.6, zeta: 0.14, driveK: 0.60, deadbandDeg: 0.40, micro: 0.2 }; }
   setLively(true);
-  function addKickDeg(deg){ omega += (deg||60)*Math.PI/180; }
-  let bellDegF=0,tzDegF=0,clapDegF=0;
-  function step(ts){ if(!lastTS) lastTS=ts; const dt=Math.min(0.05,(ts-lastTS)/1000); lastTS=ts;
-    const T=params.T, wn=2*Math.PI/T, zeta=params.zeta+(+rate.value)/1200;
-    const r=+rate.value, windFreq=.28+r/380; phase += 2*Math.PI*windFreq*dt;
+  function addKickDeg(deg){ omega += (deg||60) * Math.PI/180; }
+  let bellDegF=0, tzDegF=0, clapDegF=0;
+
+  function step(ts){
+    if(!lastTS) lastTS = ts;
+    const dt = Math.min(0.05, (ts - lastTS)/1000); lastTS = ts;
+
+    const T=params.T, wn=2*Math.PI / T;
+    const zeta = params.zeta + (+rate.value)/1200;
+
+    const r=+rate.value, windFreq=.28 + r/380;
+    phase += 2*Math.PI*windFreq*dt;
+
     const micro=(Math.random()*2-1)*params.micro*Math.PI/180;
     const drive=(5+r*.10)*Math.PI/180*Math.sin(phase)+micro;
+
     const alpha = -2*zeta*wn*omega - wn*wn*theta + drive*wn*wn*params.driveK;
-    omega += alpha*dt; const wClamp=8; if(omega>wClamp)omega=wClamp; else if(omega<-wClamp)omega=-wClamp;
+    omega += alpha*dt; const wClamp=8; if(omega>wClamp) omega=wClamp; else if(omega<-wClamp) omega=-wClamp;
     theta += omega*dt;
-    const db=params.deadbandDeg*Math.PI/180;
-    if(!running && Math.abs(theta)<db && Math.abs(omega)<db){ theta=0; omega=0; if(raf){cancelAnimationFrame(raf);raf=null;} assembly.setAttribute('transform','rotate(0 180 220)'); bellGroup.removeAttribute('transform'); tanzakuGroup.removeAttribute('transform'); clapper.removeAttribute('transform'); status.textContent='待機中'; return; }
-    const deg=theta*180/Math.PI; assembly.setAttribute('transform','rotate('+deg+' 180 220)');
+
+    const db = params.deadbandDeg*Math.PI/180;
+    if(!running && Math.abs(theta)<db && Math.abs(omega)<db){
+      theta=0; omega=0;
+      if(raf){ cancelAnimationFrame(raf); raf=null; }
+      assembly.setAttribute('transform','rotate(0 180 220)');
+      bellGroup.removeAttribute('transform'); tanzakuGroup.removeAttribute('transform'); clapper.removeAttribute('transform');
+      status.textContent='待機中';
+      return;
+    }
+
+    const deg=theta*180/Math.PI;
+    assembly.setAttribute('transform','rotate('+deg+' 180 220)');
     const sBell=7.0,sTz=4.2,sClap=8.5, lpf=(v,t,s)=> v+(t-v)*(1-Math.exp(-s*dt));
     bellDegF=lpf(bellDegF,deg*.22,sBell); tzDegF=lpf(tzDegF,deg*.42,sTz); clapDegF=lpf(clapDegF,deg*.30,sClap);
     bellGroup.setAttribute('transform','rotate('+bellDegF+' 180 300)'); tanzakuGroup.setAttribute('transform','rotate('+tzDegF+' 180 392)'); clapper.setAttribute('transform','rotate('+clapDegF+' 180 300)');
+
     raf=requestAnimationFrame(step);
   }
-  function startWind(){ if(running)return; running=true; toggle.classList.add('on'); toggle.textContent='停風（停止）'; status.textContent='風在吹：響鈴中…'; if(!raf){lastTS=0;raf=requestAnimationFrame(step);} scheduleLoop(); scheduleGust(); }
-  function stopWind(){ running=false; toggle.classList.remove('on'); toggle.textContent='有風（開始）'; status.textContent='待機中'; clearTimeout(windTimer); windTimer=null; }
-  function scheduleLoop(){ const r=+rate.value, base=2000-r*15, jitter=Math.random()*600; windTimer=setTimeout(()=>{ chime(); if(running) scheduleLoop(); }, Math.max(300, base+jitter)); }
 
-  function bind(el, fn){ el.addEventListener('click', function(e){ fn(e); flashDot(); }, {passive:false}); el.addEventListener('touchend', function(e){ fn(e); flashDot(); }, {passive:false}); }
-  bind(toggle, ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); running?stopWind():startWind(); });
-  bind(one, ()=>{ if(audioCtx.state==='suspended') audioCtx.resume(); chime(); if(!running){ if(!raf){ lastTS=0; raf=requestAnimationFrame(step); } } });
-  bind(livelyBtn, ()=>{ setLively(!livelyBtn.classList.contains('on')); });
+  function startWind(){
+    running=true; toggle.classList.add('on'); toggle.textContent='停風（停止）'; status.textContent='風在吹：響鈴中…';
+    if(!raf){ lastTS=0; raf=requestAnimationFrame(step); }
+    scheduleLoop(); if(gustEnabled) scheduleGust();
+  }
+  function stopWind(){
+    running=false; toggle.classList.remove('on'); toggle.textContent='有風（開始）'; status.textContent='待機中';
+    clearTimeout(windTimer); windTimer=null;
+  }
+  function scheduleLoop(){
+    const r=+rate.value, base=2000-r*15, jitter=Math.random()*600;
+    windTimer=setTimeout(()=>{ try{ chime(); }catch(e){ console.error('chime err',e); }
+      if(running) scheduleLoop();
+    }, Math.max(300, base+jitter));
+  }
 
-  function scheduleGust(){ if(!gustEnabled||!running) return; const next=1000+Math.random()*5000; gustTimer=setTimeout(()=>{ const bursts=1+Math.floor(Math.random()*3); const kick=8+Math.random()*8; addKickDeg(kick*6); chime(); let i=1; function more(){ if(i>=bursts) return scheduleGust(); addKickDeg(kick*6*(0.7**i)); chime(); i++; setTimeout(more, 200+Math.random()*300); } setTimeout(more, 200+Math.random()*300); }, next); }
-  bind(gustBtn, ()=>{ gustEnabled=!gustEnabled; gustBtn.classList.toggle('on',gustEnabled); gustBtn.textContent=gustEnabled?'陣風（開）':'陣風（關）'; if(gustEnabled) scheduleGust(); else if(gustTimer){ clearTimeout(gustTimer); gustTimer=null; } });
+  /* 按钮 */
+  bind(toggle, ()=>{ try{ if(audioCtx.state==='suspended') audioCtx.resume(); running?stopWind():startWind(); }catch(e){ console.error('toggle err', e); } });
+  bind(one,    ()=>{ try{ if(audioCtx.state==='suspended') audioCtx.resume(); chime(); if(!running){ if(!raf){ lastTS=0; raf=requestAnimationFrame(step); } } }catch(e){ console.error('one err', e); } });
+  bind(livelyBtn, ()=>{ try{ setLively(!livelyBtn.classList.contains('on')); }catch(e){ console.error('lively err',e); } });
 
-  // ambience toggle
-  (function(){ const ctx=audioCtx; let ocean={started:false,gain:null};
-    function ensure(){ if(!ocean.started){ const n=ctx.createScriptProcessor(2048,1,1), f=ctx.createBiquadFilter(), g=ctx.createGain(), lfo=ctx.createOscillator(), lg=ctx.createGain();
-      let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0; n.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0); for(let i=0;i<out.length;i++){ const w=Math.random()*2-1;
+  /* 阵风 */
+  function scheduleGust(){
+    if(!gustEnabled||!running) return;
+    const next=1000+Math.random()*5000;
+    window.__gustTimer = setTimeout(()=>{
+      try{
+        const bursts=1+Math.floor(Math.random()*3);
+        const kick=8+Math.random()*8; addKickDeg(kick*6); chime();
+        let i=1; (function more(){ if(i>=bursts) return scheduleGust(); addKickDeg(kick*6*(0.7**i)); chime(); i++; setTimeout(more, 200+Math.random()*300); })();
+      }catch(e){ console.error('gust err', e); }
+    }, next);
+  }
+  bind(gustBtn, ()=>{ try{
+    gustEnabled=!gustEnabled; gustBtn.classList.toggle('on',gustEnabled);
+    gustBtn.textContent=gustEnabled?'陣風（開）':'陣風（關）';
+    if(gustEnabled) scheduleGust(); else { clearTimeout(window.__gustTimer); }
+  }catch(e){ console.error('gust btn err',e); } });
+
+  /* 海浪环境音（白噪+低通+LFO） */
+  (function(){ const ctx=audioCtx; let ocean={started:false,g:null};
+    function ensure(){ if(!ocean.started){
+      const n=ctx.createScriptProcessor(2048,1,1), f=ctx.createBiquadFilter(), g=ctx.createGain(), lfo=ctx.createOscillator(), lg=ctx.createGain();
+      let b0=0,b1=0,b2=0,b3=0,b4=0,b5=0,b6=0;
+      n.onaudioprocess=e=>{ const out=e.outputBuffer.getChannelData(0); for(let i=0;i<out.length;i++){ const w=Math.random()*2-1;
         b0=0.99886*b0+w*0.0555179; b1=0.99332*b1+w*0.0750759; b2=0.96900*b2+w*0.1538520; b3=0.86650*b3+w*0.3104856; b4=0.55000*b4+w*0.5329522; b5=-0.7616*b5-w*0.0168980; out[i]=(b0+b1+b2+b3+b4+b5+b6 + w*0.5362)*0.08; b6=w*0.115926; } };
-      f.type='lowpass'; f.frequency.value=700; g.gain.value=0.22; lfo.frequency.value=0.09; lg.gain.value=0.35; lfo.connect(lg); lg.connect(g.gain); n.connect(f).connect(g).connect(ctx.destination); lfo.start(); ocean={started:true,gain:g}; } }
+      f.type='lowpass'; f.frequency.value=700; g.gain.value=0.22; lfo.frequency.value=0.09; lg.gain.value=0.35;
+      lfo.connect(lg); lg.connect(g.gain); n.connect(f).connect(g).connect(ctx.destination); lfo.start();
+      ocean={started:true,g:g};
+    } }
     ensure();
-    bind(ambience, ()=>{ ensure(); if(ambience.classList.contains('on')){ ocean.gain.gain.cancelScheduledValues(audioCtx.currentTime); ocean.gain.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.6); ambience.classList.remove('on'); ambience.textContent='海浪聲（關）'; } else { if(audioCtx.state==='suspended') audioCtx.resume(); ocean.gain.gain.cancelScheduledValues(audioCtx.currentTime); ocean.gain.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 0.8); ambience.classList.add('on'); ambience.textContent='海浪聲（開）'; } });
+    bind(ambience, ()=>{ try{
+      ensure();
+      if(ambience.classList.contains('on')){
+        ocean.g.gain.cancelScheduledValues(audioCtx.currentTime);
+        ocean.g.gain.linearRampToValueAtTime(0.0, audioCtx.currentTime + 0.6);
+        ambience.classList.remove('on'); ambience.textContent='海浪聲（關）';
+      }else{
+        if(audioCtx.state==='suspended') audioCtx.resume();
+        ocean.g.gain.cancelScheduledValues(audioCtx.currentTime);
+        ocean.g.gain.linearRampToValueAtTime(0.22, audioCtx.currentTime + 0.8);
+        ambience.classList.add('on'); ambience.textContent='海浪聲（開）';
+      }
+    }catch(e){ console.error('ambience err',e); } });
   })();
 
-  // hanabi omitted here to keep size smaller in this diagnostic; reuse previous v21 logic if needed.
+  /* 花火（夏日祭配色 + 尾迹） */
+  (function(){
+    const cvs=document.getElementById('fw'); let ctx;
+    try{ ctx=cvs.getContext('2d',{alpha:true}); }catch(e){ console.error('canvas ctx err',e); return; }
+    const DPR=Math.min(window.devicePixelRatio||1,1.5);
+    function resize(){ cvs.width=Math.floor(innerWidth*DPR); cvs.height=Math.floor(innerHeight*DPR); ctx.setTransform(DPR,0,0,DPR,0,0); }
+    resize(); addEventListener('resize', resize);
+
+    let enabled=true;
+    bind(hanabiBtn, ()=>{ try{ enabled=!enabled; hanabiBtn.classList.toggle('on',enabled); hanabiBtn.textContent=enabled?'花火大会（開）':'花火大会（關）'; }catch(e){ console.error('hanabi toggle err',e); } });
+
+    const S=38, sprite=document.createElement('canvas'); sprite.width=sprite.height=S;
+    const sg=sprite.getContext('2d'); const grad=sg.createRadialGradient(S/2,S/2,0, S/2,S/2,S/2);
+    grad.addColorStop(0,'rgba(255,255,255,1)'); grad.addColorStop(0.25,'rgba(255,255,255,0.85)'); grad.addColorStop(1,'rgba(255,255,255,0)'); sg.fillStyle=grad; sg.beginPath(); sg.arc(S/2,S/2,S/2,0,6.283); sg.fill();
+
+    const palettes=[["#ff9aa2","#ffd1dc","#fff5ba"],["#a0e7e5","#b4f8c8","#fbe7c6"],["#cdb4db","#ffc8dd","#ffe5ec"],["#90dbf4","#a3c4f3","#fde4cf"]];
+    const MAX_PART=900, MAX_SHELL=8;
+    const parts=new Array(MAX_PART).fill(0).map(()=>({a:false})), shells=new Array(MAX_SHELL).fill(0).map(()=>({a:false}));
+    const P=[], S=[]; function getP(){ for(const p of parts){ if(!p.a){ p.a=true; P.push(p); return p;} } return null; } function freeP(p){ p.a=false; const i=P.indexOf(p); if(i>-1) P.splice(i,1); }
+    function getS(){ for(const s of shells){ if(!s.a){ s.a=true; S.push(s); return s;} } return null; } function freeS(s){ s.a=false; const i=S.indexOf(s); if(i>-1) S.splice(i,1); }
+
+    function launch(x){ if(!enabled) return; const s=getS(); if(!s) return; const W=innerWidth,H=innerHeight; s.x=(x==null)?(W*.2+Math.random()*W*.6):x; s.y=H+20; s.vx=(Math.random()*2-1)*.4; s.vy=-(7+Math.random()*3); s.type=["kiku","peony","ring","willow"][Math.random()*4|0]; s.colors=palettes[Math.random()*palettes.length|0]; s.h=H*(.25+Math.random()*.25); s.l=0; s.t=0; }
+    function burst(x,y,type,colors){ const load=P.length/900, base=(load<.5)?110:(load<.7)?85:60, pick=()=>colors[Math.random()*colors.length|0];
+      const push=(vx,vy,g,life,size,c)=>{ const p=getP(); if(!p) return; p.x=x; p.y=y; p.vx=vx; p.vy=vy; p.g=g; p.life=life; p.size=size; p.c=c; p.alpha=1; p.tail=[]; };
+      if(type==="ring"){ const n=base,r=2.2; for(let i=0;i<n;i++){ const a=i/n*6.283; push(Math.cos(a)*r, Math.sin(a)*r, .018,90,2.2,pick()); } }
+      else if(type==="kiku"){ const n=base,r=2.6; for(let i=0;i<n;i++){ const a=i/n*6.283+(Math.random()-.5)*.02, k=1+Math.sin(8*a)*.15; push(Math.cos(a)*r*k, Math.sin(a)*r*k,.017,100,2.4,pick()); } }
+      else if(type==="willow"){ const n=base*.9,r=2.0; for(let i=0;i<n;i++){ const a=Math.random()*6.283; push(Math.cos(a)*r*.8, Math.sin(a)*r*.6, .034,120,2.2,"#ffdca8"); } }
+      else { const n=base,r=2.3; for(let i=0;i<n;i++){ const a=Math.random()*6.283; push(Math.cos(a)*r, Math.sin(a)*r, .018,95,2.2,pick()); } for(let i=0;i<base*.12;i++){ const a=Math.random()*6.283; push(Math.cos(a)*.9, Math.sin(a)*.9, .02,70,1.6,pick()); } }
+    }
+    function drawTail(p){ p.tail=p.tail||[]; p.tail.push([p.x,p.y]); if(p.tail.length>8) p.tail.shift(); ctx.lineWidth=1; ctx.globalAlpha=.25*Math.max(p.alpha,0); ctx.strokeStyle=p.c; ctx.beginPath(); for(let i=0;i<p.tail.length;i++){ const [tx,ty]=p.tail[i]; if(i===0) ctx.moveTo(tx,ty); else ctx.lineTo(tx,ty);} ctx.stroke(); ctx.globalAlpha=1; }
+    function trail(x,y,color){ const p=getP(); if(!p) return; p.x=x; p.y=y; p.vx=(Math.random()*2-1)*.2; p.vy=(Math.random()*2-1)*.2; p.g=0; p.life=22; p.size=1.6; p.c=color; p.alpha=.8; p.tail=[]; }
+
+    let last=performance.now(), lastLaunch=0;
+    function step(now){ const dt=(now-last)||16; last=now;
+      if(enabled){ if(now-lastLaunch>800+Math.random()*900){ launch(); lastLaunch=now; } if(Math.random()<.02){ launch(); } }
+      const DPR=Math.min(window.devicePixelRatio||1,1.5);
+      const W=cvs.width/DPR, H=cvs.height/DPR;
+      ctx.clearRect(0,0,W,H); ctx.globalCompositeOperation='lighter';
+      for(let i=S.length-1;i>=0;i--){ const s=S[i]; s.x+=s.vx; s.y+=s.vy; s.vy+=.06; s.l+=dt; s.t+=dt; if(s.t>30){ trail(s.x,s.y,s.colors[0]); s.t=0; } ctx.drawImage(sprite, s.x-2, s.y-6, 4, 12); if(s.vy>0 || s.y < s.h){ burst(s.x,s.y,s.type,s.colors); freeS(s);} }
+      for(let i=P.length-1;i>=0;i--){ const p=P[i]; p.x+=p.vx; p.y+=p.vy; p.vy+=p.g; p.life--; p.alpha=p.life/95; drawTail(p); if(p.alpha<=0){ freeP(p); continue; } ctx.globalAlpha=Math.max(0,Math.min(1,p.alpha)); ctx.drawImage(sprite, p.x-p.size*2, p.y-p.size*2, p.size*4, p.size*4); ctx.globalAlpha=1; }
+      requestAnimationFrame(step);
+    }
+    requestAnimationFrame(step);
+    setTimeout(()=>{ launch(innerWidth*.3); launch(innerWidth*.5); launch(innerWidth*.7); }, 800);
+  })();
+
+} catch(err){ const box=document.getElementById('err'); box.style.display='block'; box.textContent='[Init Error] '+err.message; }
 }
-// robust init: any of these will work
 if(document.readyState==='complete' || document.readyState==='interactive'){ setTimeout(init, 0); }
 window.addEventListener('DOMContentLoaded', init, {once:true});
 window.addEventListener('load', init, {once:true});
