@@ -1,8 +1,9 @@
+
 <!doctype html>
 <html lang="zh-CN"><head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>風鈴 · DebugMini v16</title>
+<title>風鈴 · DebugMini v17</title>
 <style>
   html,body{height:100%;margin:0;background:#061227;color:#e6eefc;font-family:-apple-system,system-ui,Segoe UI,Roboto,PingFang SC,Hiragino Sans;}
   #fw{position:fixed;inset:0;z-index:0;pointer-events:none}
@@ -28,12 +29,15 @@
         <g id="bell">
           <path d="M130,300 Q180,230 230,300 L230,330 Q180,350 130,330 Z" fill="#9ec9ff33" stroke="#8db2ff" stroke-width="2"/>
           <ellipse cx="180" cy="300" rx="50" ry="10" fill="#8fb9ff" opacity="0.9"/>
-          <circle id="clapper" cx="180" cy="360" r="10" fill="#c2d2ff"/>
+          <!-- 加长“撞木-悬吊” -->
+          <line id="clapperLine" x1="180" y1="300" x2="180" y2="364" stroke="#aecdff" stroke-width="2"/>
+          <circle id="clapper" cx="180" cy="372" r="10" fill="#c2d2ff"/>
         </g>
         <g id="tz">
-          <line x1="180" y1="370" x2="180" y2="380" stroke="#9fb7ff" stroke-width="2"/>
-          <rect x="165" y="380" width="30" height="70" rx="4" fill="#0f1c33" stroke="#324b7a"/>
-          <text x="180" y="385" text-anchor="middle" fill="#b7d0ff" font-size="14" style="writing-mode:vertical-rl">香橙布叮铃铃</text>
+          <!-- 短册挂点顺延到更低位置，更像真实结构 -->
+          <line x1="180" y1="382" x2="180" y2="392" stroke="#9fb7ff" stroke-width="2"/>
+          <rect x="165" y="392" width="30" height="70" rx="4" fill="#0f1c33" stroke="#324b7a"/>
+          <text x="180" y="397" text-anchor="middle" fill="#b7d0ff" font-size="14" style="writing-mode:vertical-rl">香橙布叮铃铃</text>
         </g>
       </g>
     </svg>
@@ -47,46 +51,88 @@
 </div>
 
 <script>
-// 错误可视化
 (function(){const b=document.getElementById('err');addEventListener('error',e=>{b.style.display='block';b.textContent='[Error] '+e.message;});addEventListener('unhandledrejection',e=>{b.style.display='block';b.textContent='[Rejection] '+e.reason;});})();
 
 document.addEventListener('DOMContentLoaded', function(){
   const $=id=>document.getElementById(id);
-  const asm=$('asm'), bell=document.getElementById('bell'), tz=document.getElementById('tz'), clapper=$('clapper');
+  const asm=$('asm'), bell=$('bell'), tz=$('tz'), clapper=$('clapper');
   const toggle=$('toggle'), hit=$('hit'), rate=$('rate'), st=$('st'), btnHanabi=$('hanabi');
 
-  // 音频（极简）
+  // 极简音频
   const actx=new (window.AudioContext||window.webkitAudioContext)();
   function chime(){const now=actx.currentTime;
     function tone(f,t){const o=actx.createOscillator(),g=actx.createGain();o.type='sine';o.frequency.value=f;g.gain.setValueAtTime(0,now+t);g.gain.linearRampToValueAtTime(.9,now+t+.01);g.gain.exponentialRampToValueAtTime(.0001,now+t+1.3);o.connect(g).connect(actx.destination);o.start(now+t);o.stop(now+t+1.4);}
     tone(1400,0);tone(1000,.03);tone(1800,.12); impulse+=6;
   }
 
-  // 摆动
+  // 自然摆动 + 次级延迟（更像物理）
   let raf=null,phase=0,impulse=0,running=false,timer=null;
-  function loop(){const r=+rate.value,f=.6+r/120,amp=1+r/30;phase+=(f*2*Math.PI)/60;impulse*=.94;const d=Math.sin(phase)*(amp+impulse);
-    asm.setAttribute('transform','rotate('+d+' 180 220)');bell.setAttribute('transform','rotate('+(d*.2)+' 180 300)');tz.setAttribute('transform','rotate('+(d*.4)+' 180 370)');clapper.setAttribute('transform','rotate('+(d*.3)+' 180 300)');
+  let bellA=0,tzA=0,clapA=0; // secondary angles with lag
+  function loop(){
+    const r=+rate.value,f=.6+r/120,amp=1+r/30;
+    phase+=(f*2*Math.PI)/60; impulse*=.94;
+    const deg = Math.sin(phase)*(amp+impulse);
+
+    // 主体直接摇摆
+    asm.setAttribute('transform','rotate('+deg+' 180 220)');
+
+    // 子部件追随目标角，但带阻尼延迟
+    const targetBell = deg*0.22, targetTz = deg*0.42, targetClap = deg*0.3;
+    bellA += (targetBell - bellA) * 0.14;
+    tzA   += (targetTz   - tzA)   * 0.08;
+    clapA += (targetClap - clapA) * 0.18;
+
+    bell.setAttribute('transform','rotate('+bellA+' 180 300)');
+    tz.setAttribute('transform','rotate('+tzA+' 180 392)');
+    clapper.setAttribute('transform','rotate('+clapA+' 180 300)');
+
     raf=requestAnimationFrame(loop);
   }
   function start(){if(running)return;running=true;toggle.classList.add('on');toggle.textContent='停風（停止）';st.textContent='風在吹：響鈴中…';if(!raf)raf=requestAnimationFrame(loop);schedule();}
-  function stop(){running=false;toggle.classList.remove('on');toggle.textContent='有風（開始）';st.textContent='待機中';clearTimeout(timer);timer=null;if(raf){cancelAnimationFrame(raf);raf=null;}asm.setAttribute('transform','rotate(0 180 220)');bell.removeAttribute('transform');tz.removeAttribute('transform');clapper.removeAttribute('transform');}
+  function stop(){running=false;toggle.classList.remove('on');toggle.textContent='有風（開始）';st.textContent='待機中';clearTimeout(timer);timer=null;if(raf){cancelAnimationFrame(raf);raf=null;}asm.setAttribute('transform','rotate(0 180 220)');bell.removeAttribute('transform');tz.removeAttribute('transform');clapper.removeAttribute('transform'); bellA=tzA=clapA=0;}
   function schedule(){const r=+rate.value,b=2000-r*15,j=Math.random()*600;timer=setTimeout(function(){chime();if(running)schedule();},Math.max(300,b+j));}
 
   toggle.addEventListener('click',function(){if(actx.state==='suspended')actx.resume();running?stop():start();});
   hit.addEventListener('click',function(){if(actx.state==='suspended')actx.resume();chime();if(!running){impulse+=6;if(!raf){let f=0;(function temp(){loop();if(++f>90){cancelAnimationFrame(raf);raf=null;stop();}else requestAnimationFrame(temp);})()}}});
 
-  // 花火（轻量+高兼容）
+  // 花火：修复“关闭后无法再开启”的问题（使用 scheduler + 重新启动）
   const cvs=$('fw'), ctx=cvs.getContext('2d',{alpha:true}); const DPR=Math.min(window.devicePixelRatio||1,1.5);
   function resize(){cvs.width=Math.floor(innerWidth*DPR);cvs.height=Math.floor(innerHeight*DPR);ctx.setTransform(DPR,0,0,DPR,0,0);} resize(); addEventListener('resize',resize);
-  let hanabiOn=true; btnHanabi.addEventListener('click',()=>{hanabiOn=!hanabiOn;btnHanabi.classList.toggle('on',hanabiOn);btnHanabi.textContent=hanabiOn?'花火大会（開）':'花火大会（關）';});
+  let hanabiOn=true, launchTimer=null;
+  btnHanabi.addEventListener('click',()=>{
+    hanabiOn=!hanabiOn;
+    btnHanabi.classList.toggle('on',hanabiOn);
+    btnHanabi.textContent=hanabiOn?'花火大会（開）':'花火大会（關）';
+    if(hanabiOn){ scheduleLaunch(); } else { if(launchTimer){ clearTimeout(launchTimer); launchTimer=null; } }
+  });
+
   const particles=[];
-  function launch(){if(!hanabiOn)return; const x=Math.random()*innerWidth*.7+innerWidth*.15;const targetY=Math.random()*innerHeight*.4+60;particles.push({x:x,y:innerHeight+10,vy:-7-Math.random()*3,stage:0,targetY,color:'#ffd166'}); setTimeout(launch,900+Math.random()*900);}
-  function explode(x,y){for(let i=0;i<80;i++){const a=Math.random()*Math.PI*2,s=Math.random()*4+1;particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:60+Math.random()*30,stage:1,color:i%3? '#ffd166':'#ff6a6a'});}}
-  function step(){ctx.clearRect(0,0,cvs.width/DPR,cvs.height/DPR); for(let i=particles.length-1;i>=0;i--){const p=particles[i];
+  function spawnRocket(){
+    const x=Math.random()*innerWidth*.7+innerWidth*.15;
+    const targetY=Math.random()*innerHeight*.4+60;
+    particles.push({x:x,y:innerHeight+10,vy:-7-Math.random()*3,stage:0,targetY,color:'#ffd166'});
+  }
+  function scheduleLaunch(){
+    if(!hanabiOn) return;
+    spawnRocket();
+    launchTimer = setTimeout(scheduleLaunch, 900+Math.random()*900);
+  }
+  // 初始启动一次
+  scheduleLaunch();
+
+  function explode(x,y){
+    for(let i=0;i<80;i++){const a=Math.random()*Math.PI*2,s=Math.random()*4+1;particles.push({x:x,y:y,vx:Math.cos(a)*s,vy:Math.sin(a)*s,life:60+Math.random()*30,stage:1,color:i%3? '#ffd166':'#ff6a6a'});}
+  }
+  function step(){
+    ctx.clearRect(0,0,cvs.width/DPR,cvs.height/DPR);
+    for(let i=particles.length-1;i>=0;i--){
+      const p=particles[i];
       if(p.stage===0){p.y+=p.vy; ctx.fillStyle=p.color; ctx.fillRect(p.x-1,p.y-6,2,12); if(p.y<=p.targetY){explode(p.x,p.y); particles.splice(i,1);}}
       else{p.x+=p.vx;p.y+=p.vy;p.vy+=.02;p.life--; ctx.globalAlpha=Math.max(p.life/80,0); ctx.fillStyle=p.color; ctx.beginPath(); ctx.arc(p.x,p.y,2,0,7); ctx.fill(); ctx.globalAlpha=1; if(p.life<=0)particles.splice(i,1);}
-    } requestAnimationFrame(step);}
-  launch(); step();
+    }
+    requestAnimationFrame(step);
+  }
+  step();
 });
 </script>
 </body></html>
